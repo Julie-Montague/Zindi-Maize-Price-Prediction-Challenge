@@ -31,12 +31,12 @@ flowchart TD
 
     %% Optional: model tuning
     C --> D{Rerun full pipeline}
-    D -- Yes --> I[Run Modelling_Final.ipynb.The best models will be saved in terms of the lowest RMSE AND MAE.if a new model generates a better performance than the previously chosen best model, change the model path manually in the Submission_Final notebook to reference the new models]
-    D -- No  --> J[Submission_Final.ipynb : Use pre-saved best models to generate final submission file]
+    D -- Yes --> E[Run Modelling_Final.ipynb.The best models will be saved in terms of the lowest RMSE AND MAE.if a new model generates a better performance than the previously chosen best model, change the model path manually in the Submission_Final notebook to reference the new models]
+    D -- No  --> F[Submission_Final.ipynb : Use pre-saved best models to generate final submission file]
 
     %% Final submission
     D --> E
-    E --> J((Done))
+    E --> F((Done))
 ```
 
 
