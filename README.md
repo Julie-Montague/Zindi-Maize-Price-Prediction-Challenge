@@ -15,6 +15,31 @@ Using historical prices of dry maize in Kenya, this project develops a machine l
 ```
 The notebook creates a run-specific experiment code (`exp_code`) and uses it to build `OUTPUT_DIR`.
 
+## HOW TO RUN THE CODE
+1. Maintain the structure above to run the code efficiently
+2. Run 'pip install -r requirements.txt' (since we are using colab, each notebook has this code at the top before any imports).
+3. To run the model from scratch, use Modelling_Final.ipynb
+** For reproducibility, the artefacts from (3) are saved and we use the pre-saved models to generate the final submission file.
+
+## ARCHITECTURAL DIAGRAM
+```mermaid
+flowchart TD
+    %% Workflow for training & submission
+
+    A((Start)) --> B[Make sure to save the files as shown in the repo structure section]
+    B --> C[pip install -r requirements.txt]
+
+    %% Optional: model tuning
+    C --> D{Rerun full pipeline}
+    D -- Yes --> I[Run Modelling_Final.ipynb.The best models will be saved in terms of the lowest RMSE AND MAE.if a new model generates a better performance than the previously chosen best model, change the model path manually in the Submission_Final notebook to reference the new models]
+    D -- No  --> J[Submission_Final.ipynb : Use pre-saved best models to generate final submission file]
+
+    %% Final submission
+    D --> E
+    E --> J((Done))
+```
+
+
 ## Data requirements
 
 ### AgriBORA inputs
