@@ -1,25 +1,45 @@
 # Zindi-Maize-Price-Prediction-Challenge
-Using historical prices of dry maize in Kenya, this project develops a machine learning solution to predict average weekly prices of maize in the counties of Kiambu, Kirinyaga, Mombasa, Nairobi and Uasin-Gishu.
+## OVERVIEW
+Using historical prices of dry maize in Kenya, this project develops a machine learning solution to predict average weekly prices of maize in the counties of Kiambu, Kirinyaga, Mombasa, Nairobi and Uasin-Gishu. By forecasting average weekly dry maize prices, the model provides short-horizon market intelligence that can help farmers decide when to sell after storing produce in certified warehouses. Reliable two-week-ahead forecasts strengthen agriBORA’s storage–credit–market workflow by enabling better timing decisions for delayed selling and improving expected returns.
+
+## Objectives
+
+1. **Build a clean weekly panel** (county × week-start date) from the challenge data, robust to duplicate rows and irregular reporting.
+2. **Improve signal** by augmenting AgriBORA prices with external market indicators from **KAMIS** (county + national summaries).
+3. **Forecast multiple horizons** by training separate models for **H=1** and **H=2** weeks ahead.
+4. **Select the best model per horizon** using a **walk-forward backtest** and competition-aligned metrics (**RMSE** and **MAE** on price level).
+5. **Operationalize the output** so it can be rerun when data updates and exported into the competition submission format.
+
 
 ## REPOSITORY LAYOUT
 ```
 .
 ├── Modelling_Final.ipynb
+├── Submission_Final.ipynb
+├── README.md
+├── requirements.txt
 ├── data/
 │   ├── agriBORA_maize_prices.csv
 │   ├── agriBORA_maize_prices_weeks_46_to_51.csv
 │   ├── kamis_maize_prices.csv
 │   └── (optional) kamis_maize_prices_downloaded.csv
+│   └──  processed_data.csv
 └── modelling_results/
     └── <exp_code>/   # run artifacts (if you choose to save models)
 ```
 The notebook creates a run-specific experiment code (`exp_code`) and uses it to build `OUTPUT_DIR`.
+
+## CODING ENVIRONMENT
+Google Colab (Free version) : The google drive is mounted at the start of each notebook. The main directory path is : "/content/drive/MyDrive/Zindi_Maize_Prediction_Challenge/requirements.txt"
 
 ## HOW TO RUN THE CODE
 1. Maintain the structure above to run the code efficiently
 2. Run 'pip install -r requirements.txt' (since we are using colab, each notebook has this code at the top before any imports).
 3. To run the model from scratch, use Modelling_Final.ipynb
 ** For reproducibility, the artefacts from (3) are saved and we use the pre-saved models to generate the final submission file.
+
+## NOTEBOOK RUNTIME
+All the notebook files takes less that 5 minutes whne run on the colab environment
 
 ## ARCHITECTURAL DIAGRAM
 ```mermaid
@@ -35,7 +55,6 @@ flowchart TD
     D --> E
     E --> F((Done))
 ```
-
 
 ## Data requirements
 
@@ -72,29 +91,127 @@ Key settings you can edit:
 - **Backtesting**
   - `N_BACKTEST_CUTOFFS` (number of cutoffs to test)
   - `H_MAX` (how far to extend the weekly grid)
+ 
+## ETL PROCESS
+### 1) Ingest sources
+- **AgriBORA (main data):**  
+  - `data/agriBORA_maize_prices.csv` (historical)  
+  - `data/agriBORA_maize_prices_weeks_46_to_51.csv` (recent patch)
+- **KAMIS (external market):**  
+  - `data/kamis_maize_prices.csv` (baseline kamis data)  
+  - *(optional)* live download → `data/kamis_maize_prices_downloaded.csv`
+  - 
+### 2) Filter + standardize
+- Filter AgriBORA rows to:
+  - `Commodity_Classification == "Dry_White_Maize"`
+  - `County in TARGET_COUNTIES`
+- Combine “full” + “recent patch”, then **deduplicate** by `(County, Date)` keeping the latest row.
+- Lowercase columns and normalize county name keys.
 
-- **Model selection**
-  - `best_models = {1: "catboost", 2: "mlp"}` (example in the notebook)
+### 3) Weekly alignment (no leakage)
+- Convert all dates to **week-start Mondays** by subtracting the weekday offset.  
+  This ensures a consistent weekly timeline for both modelling and forecast dates.
+  
+### 4) KAMIS preprocessing + aggregation
+- Combine `kamis_maize_prices.csv` with the optional freshly downloaded KAMIS extract (when available), then filter to:
+  - `classification == "White_Maize"`
+- Apply **outlier clipping by county** (1st–99th percentiles) on KAMIS wholesale before aggregating.
+- Build weekly market summaries:
+  - **County-level:** median wholesale/retail, sum supply volume
+  - **National-level:** median wholesale/retail, sum supply volume
+- Create **lag-1 features** (shift by one week) to prevent look-ahead bias.
+- 
+### 5) Feature merge + fallback fill
+- Merge lagged KAMIS features onto the AgriBORA weekly panel.
+- If a **county KAMIS lag** is missing for a week, fall back to the **national lag** for that same week.
+- Remaining missing KAMIS features (e.g., early history) are filled with `0.0` as a safe baseline.
 
-## Models implemented
 
-The benchmark compares these model types:
-
-- `catboost` — `CatBoostRegressor` (handles `county` as categorical via `cat_features`)
-- `hgb` — `HistGradientBoostingRegressor`
-- `ridge` — `Ridge` with preprocessing (impute + one-hot for `county` + optional scaling)
-- `elasticnet` — `ElasticNet` with preprocessing (available in helper, not always benchmarked)
-- `mlp` — `MLPRegressor` with preprocessing (impute + one-hot + scaling)
-
-Feature selection is intentionally simple and is controlled via:
-- `get_default_feature_spec(df)`
-
-## Notes on the delta (change) target
-
-The notebook forecasts **price changes** (deltas) instead of raw prices to make the learning problem more stable:
+## MODELLING APPROACH
+### TARGET DEFINITION
+Instead of predicting price directly, we **price change (delta)**:
+- `delta_h1 = price(t+1) - price(t)`
+- `delta_h2 = price(t+2) - price(t)`
+We forecast **price changes** (deltas) instead of raw prices to make the learning problem more stable:
 - Prices can have level shifts across counties and time.
 - Predicting changes focuses the model on **short-horizon dynamics**.
-- The final price forecast is reconstructed by adding the predicted change to the last known price at the anchor.
+
+The final price forecast is reconstructed by adding the predicted change to the last known price at the anchor.
+- `price_hat(t+h) = price(t) + delta_hat_h`
+
+This helps stabilize learning across counties with different price levels and keeps the model focused on the short-horizon dynamics.
+
+### Feature set (default)
+The training set is built from a compact, high-signal feature list:
+- **Autoregressive / gap-aware from AgriBORA:** `prev_price`, `prev2_price`, `gap1_weeks`, `gap2_weeks`, `slope1`
+- **Seasonality:** `iso_week`, `wk_sin`, `wk_cos`, `is_year_end`
+- **External market (KAMIS, lag-1):**
+  - national: `k_nat_wh_lag1`, `k_nat_rt_lag1`, `k_nat_supply_lag1`
+  - county (with national fallback): `k_wh_lag1`, `k_rt_lag1`, `k_supply_lag1`
+- **Categorical:** `county`
+
+| Feature | Type | Source | Definition (how it’s computed) | Why it helps / notes |
+|---|---|---|---|---|
+| `county` | categorical | AgriBORA | County identifier (Kiambu, Kirinyaga, Mombasa, Nairobi, Uasin-Gishu) | Captures structural price differences across locations |
+| `wholesale` | numeric | AgriBORA | Current week’s observed wholesale price at time **t** | Baseline level used when reconstructing price from predicted delta |
+| `prev_price` | numeric | AgriBORA | Previous observed wholesale price for that county: \(P_{t-1}\) (via `groupby(county).shift(1)`) | Autoregressive memory |
+| `prev2_price` | numeric | AgriBORA | Second previous observed wholesale price: \(P_{t-2}\) (via `shift(2)`) | Longer memory / trend |
+| `gap1_weeks` | numeric | AgriBORA | Weeks since the last observation: \((date - prev_date)/7\) | Handles irregular reporting / missing weeks |
+| `gap2_weeks` | numeric | AgriBORA | Weeks since the 2nd last observation: \((date - prev2_date)/7\) | Longer-gap context |
+| `slope1` | numeric | AgriBORA | Normalized weekly change: \((wholesale - prev_price)/gap1_weeks\) | Makes changes comparable even with missing weeks |
+| `iso_week` | numeric | Calendar | ISO week-of-year for the week-start date | Captures seasonal patterns |
+| `wk_sin` | numeric | Calendar | Cyclical encoding: \(\sin(2\pi \cdot iso\_week / 52)\) | Treats week 52 and week 1 as “close” |
+| `wk_cos` | numeric | Calendar | Cyclical encoding: \(\cos(2\pi \cdot iso\_week / 52)\) | Companion to `wk_sin` for seasonality |
+| `is_year_end` | numeric (0/1) | Calendar | 1 if `iso_week >= 48`, else 0 | Flags year-end effects |
+| `k_nat_wh_lag1` | numeric | KAMIS (national) | Previous week’s **national** median wholesale price (lag-1) | External market signal, lagged to avoid leakage |
+| `k_nat_rt_lag1` | numeric | KAMIS (national) | Previous week’s **national** median retail price (lag-1) | External market signal |
+| `k_nat_supply_lag1` | numeric | KAMIS (national) | Previous week’s **national** total supply volume (weekly sum, lag-1) | Supply pressure proxy |
+| `k_wh_lag1` | numeric | KAMIS (county) | Previous week’s **county** median wholesale price (lag-1); if missing → `k_nat_wh_lag1` | County signal with national fallback |
+| `k_rt_lag1` | numeric | KAMIS (county) | Previous week’s **county** median retail price (lag-1); if missing → `k_nat_rt_lag1` | County signal with national fallback |
+| `k_supply_lag1` | numeric | KAMIS (county) | Previous week’s **county** supply volume (weekly sum, lag-1); if missing → `k_nat_supply_lag1` | County signal with national fallback |
+
+**Notes**
+- All KAMIS features are **lagged by 1 week** to prevent look-ahead bias.
+- If county-level KAMIS lags are missing for a given week, the pipeline **falls back to national lag values**, then fills any remaining early-series missing values with `0.0`.
+
+### Models benchmarked
+For each horizon, the notebook benchmarks:
+- **CatBoostRegressor** (county passed as categorical)
+- **Ridge** (impute + one-hot encode + standardize numeric)
+- **MLPRegressor** (impute + one-hot encode + standardize numeric)
+- **HistGradientBoostingRegressor** (impute + one-hot encode; no scaling)
+
+## Performance and model selection
+
+Model selection is based on a **walk-forward backtest** (rolling origin):
+- For each cutoff date, train on all weeks strictly before the cutoff and predict the cutoff week.
+- Compute **RMSE** and **MAE** on the **reconstructed price level** (not on delta).
+
+Backtest mean results:
+
+**H = 1 (1-week ahead)**  
+| model | RMSE | MAE |
+|---|---:|---:|
+| catboost | 2.0656 | 1.8313 |
+| ridge | 2.1193 | 1.8821 |
+| mlp | 2.3012 | 2.0549 |
+| hgb | 2.3535 | 2.1315 |
+
+✅ **Selected model (H=1): CatBoost** (lowest RMSE and MAE)
+
+**H = 2 (2-weeks ahead)**  
+| model | RMSE | MAE |
+|---|---:|---:|
+| mlp | 3.2015 | 3.0520 |
+| hgb | 3.3586 | 3.2311 |
+| catboost | 3.4372 | 3.2778 |
+| ridge | 3.5102 | 3.3217 |
+
+✅ **Selected model (H=2): MLP** (lowest RMSE and MAE)
+
+Why it can differ by horizon:
+- At **H=1**, short-term structure + non-linear effects are captured well by boosted trees (CatBoost).
+- At **H=2**, the signal is weaker/noisier; in this run, the MLP generalized better across recent cutoffs.
 
 ## Submission file (template)
 
@@ -103,6 +220,28 @@ The notebook includes commented code to create a submission DataFrame like:
 - `ID`: `"{County}_Week_{wk}"`
 - `Target_RMSE`: predicted price
 - `Target_MAE`: predicted price
+
+## Lifecycle management (how to keep it running)
+
+### Updating data
+- Drop new/updated AgriBORA extracts into `data/` (same schema), then rerun the notebook.
+- If you want fresher KAMIS market signals, rerun the optional KAMIS download cell to regenerate `kamis_maize_prices_downloaded.csv`.
+
+### Re-training and re-selecting models
+- Re-run `backtest_compare(...)` for H=1 and H=2.
+- If a different model becomes best, update your `best_models` mapping (or the model file path used by your submission notebook, if you keep models saved).
+
+### Forecast schedule
+- Update these top-of-notebook knobs when the competition horizon shifts:
+  - `ANCHOR_DATE` (last observed week-start date used as the base)
+  - `FORECAST_DATES` (target Monday dates to predict)
+  - `H_MAX` (how far to extend the weekly grid)
+
+### Run outputs / versioning
+- Each run creates a timestamp-based `exp_code` and a matching output folder:
+  - `modelling_results/<exp_code>/`
+- If you enable model saving (`save_path=...`), keep one model per horizon (e.g., `catboost_delta_h1.joblib`, `mlp_delta_h2.joblib`) and update paths in the submission step accordingly.
+
 
 ## Optional: NASA POWER weather features
 
