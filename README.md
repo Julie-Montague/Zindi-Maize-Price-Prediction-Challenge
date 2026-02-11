@@ -173,7 +173,7 @@ The training set is built from a compact, high-signal feature list:
 - If county-level KAMIS lags are missing for a given week, the pipeline **falls back to national lag values**, then fills any remaining early-series missing values with `0.0`.
 
 ### Walk-forward backtest (`backtest_compare`) logic
- This is a time-aware evaluation routine used to choose the best model. It tests each candidate model across multiple “historical forecast” points: for each cutoff date, the model is trained only on data available up to that cutoff and then evaluated on the next week(s). Errors (RMSE/MAE) are computed on the forecasted price level and averaged across cutoffs to estimate how well each model is likely to perform on unseen future weeks. This approach avoids leakage from random splits and provides a more realistic measure of out-of-sample performance.
+ This is a time-aware evaluation routine used to choose the best model. It tests each candidate model across multiple “historical forecast” points: for each cutoff date, the model is trained only on data available up to that cutoff and then evaluated on the next week(s). Errors (RMSE/MAE) are computed on the **reconstructed price level** (not on delta) and averaged across cutoffs to estimate how well each model is likely to perform on unseen future weeks. This approach avoids leakage from random splits and provides a more realistic measure of out-of-sample performance.
 
 ### Models benchmarked
 For each horizon, the notebook benchmarks:
@@ -183,11 +183,6 @@ For each horizon, the notebook benchmarks:
 - **HistGradientBoostingRegressor** (impute + one-hot encode; no scaling)
 
 ### Performance and model selection
-
-Model selection is based on a **walk-forward backtest** (rolling origin):
-- For each cutoff date, train on all weeks strictly before the cutoff and predict the cutoff week.
-- Compute **RMSE** and **MAE** on the **reconstructed price level** (not on delta).
-
 Backtest mean results:
 
 **H = 1 (1-week ahead)**  
