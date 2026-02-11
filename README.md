@@ -183,7 +183,7 @@ For each horizon, the notebook benchmarks:
 - **HistGradientBoostingRegressor** (impute + one-hot encode; no scaling)
 
 ### Performance and model selection
-Backtest mean results:
+The evaluation metrices compared were Root Mean Squared Error (RMSE) and Mean Absolute Error (MAE)
 
 **H = 1 (1-week ahead)**  
 | model | RMSE | MAE |
