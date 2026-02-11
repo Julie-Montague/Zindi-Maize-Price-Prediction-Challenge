@@ -126,7 +126,7 @@ Key settings:
 - Remaining missing KAMIS features (e.g., early history) are filled with `0.0` as a safe baseline.
 
 ## MODELLING APPROACH
-### TARGET DEFINITION
+### Target Definition
 Instead of predicting price directly, we predict the **price change (delta)**:
 - `delta_h1 = price(t+1) - price(t)`
 - `delta_h2 = price(t+2) - price(t)`
@@ -139,7 +139,7 @@ The final price forecast is then reconstructed by adding the predicted change to
 
 This helps stabilize learning across counties with different price levels and keeps the model focused on the short-horizon dynamics.
 
-### FEATURE SET
+### Feature Set
 The training set is built from a compact, high-signal feature list:
 - **Autoregressive / gap-aware from AgriBORA:** `prev_price`, `prev2_price`, `gap1_weeks`, `gap2_weeks`, `slope1`
 - **Seasonality:** `iso_week`, `wk_sin`, `wk_cos`, `is_year_end`
@@ -171,6 +171,9 @@ The training set is built from a compact, high-signal feature list:
 **Notes**
 - All KAMIS features are **lagged by 1 week** to prevent look-ahead bias.
 - If county-level KAMIS lags are missing for a given week, the pipeline **falls back to national lag values**, then fills any remaining early-series missing values with `0.0`.
+
+### Walk-forward backtest (`backtest_compare`) logic
+ This is a time-aware evaluation routine used to choose the best model. It tests each candidate model across multiple “historical forecast” points: for each cutoff date, the model is trained only on data available up to that cutoff and then evaluated on the next week(s). Errors (RMSE/MAE) are computed on the forecasted price level and averaged across cutoffs to estimate how well each model is likely to perform on unseen future weeks. This approach avoids leakage from random splits and provides a more realistic measure of out-of-sample performance.
 
 ### Models benchmarked
 For each horizon, the notebook benchmarks:
