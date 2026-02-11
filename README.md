@@ -108,7 +108,7 @@ Key settings:
 - Combine “full” + “recent patch”, then **deduplicate** by `(County, Date)` keeping the latest row.
 - Lowercase columns and normalize county name keys.
 
-### 3) Weekly alignment (no leakage)
+### 3) Weekly alignment
 - Convert all dates to **week-start Mondays** by subtracting the weekday offset. This ensures a consistent weekly timeline for both modelling and forecast dates.
   
 ### 4) KAMIS preprocessing + aggregation
