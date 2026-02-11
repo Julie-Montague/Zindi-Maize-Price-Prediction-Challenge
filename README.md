@@ -53,3 +53,50 @@ Key settings you can edit:
 
 - **Model selection**
   - `best_models = {1: "catboost", 2: "mlp"}` (example in the notebook)
+
+## Models implemented
+
+The benchmark compares these model types:
+
+- `catboost` — `CatBoostRegressor` (handles `county` as categorical via `cat_features`)
+- `hgb` — `HistGradientBoostingRegressor`
+- `ridge` — `Ridge` with preprocessing (impute + one-hot for `county` + optional scaling)
+- `elasticnet` — `ElasticNet` with preprocessing (available in helper, not always benchmarked)
+- `mlp` — `MLPRegressor` with preprocessing (impute + one-hot + scaling)
+
+Feature selection is intentionally simple and is controlled via:
+- `get_default_feature_spec(df)`
+
+## Notes on the delta (change) target
+
+The notebook forecasts **price changes** (deltas) instead of raw prices to make the learning problem more stable:
+- Prices can have level shifts across counties and time.
+- Predicting changes focuses the model on **short-horizon dynamics**.
+- The final price forecast is reconstructed by adding the predicted change to the last known price at the anchor.
+
+## Submission file (template)
+
+The notebook includes commented code to create a submission DataFrame like:
+
+- `ID`: `"{County}_Week_{wk}"`
+- `Target_RMSE`: predicted price
+- `Target_MAE`: predicted price
+
+## Optional: NASA POWER weather features
+
+NASA POWER extraction utilities are present but commented out:
+- Fetch daily point data per county centroid
+- Aggregate to weekly (sum/mean/min/max depending on variable)
+- Merge on `(county, week_start_date)`
+- Optionally create lagged versions of POWER columns
+
+To enable this, uncomment:
+- the centroid table
+- the NASA POWER fetch/aggregate functions
+- the merge into `ag_feat`
+
+## Reproducibility
+
+- Random seed is set via `RANDOM_SEED = 42`.
+- Most sklearn models use `random_state=42`.
+- CatBoost uses `random_seed=42`.
