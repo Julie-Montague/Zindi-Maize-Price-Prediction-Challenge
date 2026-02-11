@@ -218,7 +218,7 @@ Looking at the feature importance files:
     - Next, the model leverages **recent dynamics and irregular reporting structure** through lag/gap-aware features such as `prev_price`, `prev2_price`, `slope1`, and `gap1_weeks`. These help distinguish “normal” week-to-week changes from cases where the previous observation is further back (missing weeks), where the implied trend and uncertainty are different.
     - Finally, lagged external market indicators from **KAMIS** (e.g., `k_wh_lag1`, `k_rt_lag1`, `k_supply_lag1`, and national lags such as `k_nat_wh_lag1`) contribute additional predictive power, acting as a broader market context signal that complements the county’s own price history.
 
-![Feature importance for H=1 and H=2](modelling_results/1770818034530/feature_importance.png)
+![Feature importance for H=1 and H=2](feature_importance.png)
 
 *Note:* Importance scores are **model-specific**. CatBoost importance reflects tree-based split/impact importance, while the MLP panel reflects a different importance proxy (in this case, permutation importance). Therefore, the rankings are most reliable **within each horizon/model** rather than as a direct numerical comparison across the two panels.
 
