@@ -25,7 +25,7 @@ Using historical prices of dry maize in Kenya, this project develops a machine l
 │   └── (optional) kamis_maize_prices_downloaded.csv
 │   └──  processed_data.csv
 └── modelling_results/
-    └── <exp_code>/   # run artifacts (if you choose to save models)
+    └── <exp_code>/   # run artefacts (if you choose to save models)
 ```
 The notebook creates a run-specific experiment code (`exp_code`) and uses it to build `OUTPUT_DIR`.
 
