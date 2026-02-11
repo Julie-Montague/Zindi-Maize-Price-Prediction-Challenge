@@ -217,7 +217,7 @@ Why it can differ by horizon:
 
 ![Feature importance for H=1 and H=2](feature_importance.png)
 
-*Note:* Importance scores are **model-specific**. CatBoost importance reflects tree-based split/impact importance, while the MLP panel reflects a different importance proxy (in this case, permutation importance). Therefore, the rankings are most reliable **within each horizon/model** rather than as a direct numerical comparison across the two panels.
+*Note:* Importance scores are **model-specific**. CatBoost importance reflects tree-based split/impact importance, while the MLP panel reflects a different importance proxy (in this case, permutation importance). Therefore, the rankings are most reliable **within each horizon/model** rather than as a direct numerical comparison across the two models.
 
 ## Submission file (template)
 
@@ -260,10 +260,11 @@ The notebook includes commented code to create a submission DataFrame like:
 
 
 ## Optional: NASA POWER weather features
-NASA POWER is a global meteorological dataset produced by NASA that provides daily, gridded weather variables such as temperature (min/max/mean), precipitation, solar radiation, humidity, wind speed, and related agro-climate indicators.
-In this project, NASA POWER features were explored as optional exogenous signals by mapping each county to a representative location (e.g., centroid), extracting daily weather time series, and aggregating them to the same weekly (Monday-start) frequency as the price panel, with lagged versions to avoid look-ahead bias.
-Although weather should theoretically affect maize supply conditions and market expectations, we ultimately excluded NASA POWER features in the final submission models because, in our backtests, adding them consistently reduced performance (higher RMSE/MAE).
-This likely reflects a combination of (i) spatial mismatch between coarse grid weather and true production zones, (ii) timing mismatch between weekly price movements and slower agronomic response lags, and (iii) limited training history where additional noisy features increase variance.
-Note on evaluation: We did not run an exhaustive feature subset search for NASA POWER (e.g., ablations, L1 selection, permutation selection). Instead, we added the full set of weekly aggregated POWER variables at once. The resulting degradation in RMSE/MAE therefore reflects this baseline integration and should be interpreted as evidence that “POWER-as-added” did not improve generalization in our backtests, not as a definitive statement that weather signals are uninformative.
+-    NASA POWER is a global meteorological dataset produced by NASA that provides daily, gridded weather variables such as temperature (min/max/mean), precipitation, solar radiation, humidity, wind speed, and related agro-climate indicators.
+-    In this project, NASA POWER features were explored as optional exogenous signals by mapping each county to a representative location (e.g., centroid), extracting daily weather time series, and aggregating them to the same weekly (Monday-start) frequency as the price panel, with lagged versions to avoid look-ahead bias.
+-    Although weather should theoretically affect maize supply conditions and market expectations, we ultimately excluded NASA POWER features in the final submission models because, in our backtests, adding them consistently reduced performance (higher RMSE/MAE).
+-    This likely reflects a combination of (i) spatial mismatch between coarse grid weather and true production zones, (ii) timing mismatch between weekly price movements and slower agronomic response lags, and (iii) limited training history where additional noisy features increase variance.
+
+  Note on evaluation: We did not run an exhaustive feature subset search for NASA POWER (e.g., ablations, L1 selection, permutation selection). Instead, we added the full set of weekly aggregated POWER variables at once. The resulting degradation in RMSE/MAE therefore reflects this baseline integration and should be interpreted as evidence that “POWER-as-added” did not improve generalization in our backtests, not as a definitive statement that weather signals are uninformative.
 
 
