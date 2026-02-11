@@ -46,7 +46,7 @@ All the notebook files takes less that 5 minutes when run on the colab environme
 flowchart TD
     %% Workflow for training & submission
 
-    A((Start)) --> B[Make sure to save the files as shown in the repo structure section]
+    A((Start)) --> B[Make sure to save the files as shown in the repository layout section]
     B --> C{Rerun full pipeline}
     C -- Yes --> D[Run Modelling_Final.ipynb.The best models will be saved in terms of the lowest RMSE AND MAE.if a new model generates a better performance than the previously chosen best model, change the model path manually in the Submission_Final notebook to reference the new models]
     C -- No  --> E[Run Submission_Final.ipynb : Use pre-saved best models to generate final submission file]
@@ -179,7 +179,7 @@ For each horizon, the notebook benchmarks:
 - **MLPRegressor** (impute + one-hot encode + standardize numeric)
 - **HistGradientBoostingRegressor** (impute + one-hot encode; no scaling)
 
-## Performance and model selection
+### Performance and model selection
 
 Model selection is based on a **walk-forward backtest** (rolling origin):
 - For each cutoff date, train on all weeks strictly before the cutoff and predict the cutoff week.
@@ -210,6 +210,17 @@ Backtest mean results:
 Why it can differ by horizon:
 - At **H=1**, short-term structure + non-linear effects are captured well by boosted trees (CatBoost).
 - At **H=2**, the signal is weaker/noisier; in this run, the MLP generalized better across recent cutoffs.
+
+### Feature Importance
+Looking at the feature importance files:
+    - Across both horizons, the most influential signal is the **current week wholesale price (`wholesale`)**, which is expected in short-horizon forecasting because recent price level acts as a strong anchor for near-term movements (the delta is typically smaller than the absolute level). The second major driver is **seasonality**—`iso_week` and the cyclical encodings (`wk_sin`, `wk_cos`)—indicating a consistent calendar pattern in weekly maize prices (e.g., harvest, storage, and end-of-year trading effects).  
+    - **Location effects** are also important. In the H=1 CatBoost model this appears directly as `county`, while in the H=2 MLP model it appears as one-hot indicators (e.g., `county_Kiambu`, `county_Mombasa`). This suggests that counties have persistent structural differences (market access, demand/supply conditions, transport costs) that the model learns as a baseline shift.
+    - Next, the model leverages **recent dynamics and irregular reporting structure** through lag/gap-aware features such as `prev_price`, `prev2_price`, `slope1`, and `gap1_weeks`. These help distinguish “normal” week-to-week changes from cases where the previous observation is further back (missing weeks), where the implied trend and uncertainty are different.
+    - Finally, lagged external market indicators from **KAMIS** (e.g., `k_wh_lag1`, `k_rt_lag1`, `k_supply_lag1`, and national lags such as `k_nat_wh_lag1`) contribute additional predictive power, acting as a broader market context signal that complements the county’s own price history.
+
+![Feature importance for H=1 and H=2](modelling_results/1770818034530/feature_importance.png)
+
+*Note:* Importance scores are **model-specific**. CatBoost importance reflects tree-based split/impact importance, while the MLP panel reflects a different importance proxy (in this case, permutation importance). Therefore, the rankings are most reliable **within each horizon/model** rather than as a direct numerical comparison across the two panels.
 
 ## Submission file (template)
 
