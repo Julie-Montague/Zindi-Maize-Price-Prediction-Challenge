@@ -2,7 +2,7 @@
 ## OVERVIEW
 Using historical prices of dry maize in Kenya, this project develops a machine learning solution to predict average weekly prices of maize in the counties of Kiambu, Kirinyaga, Mombasa, Nairobi and Uasin-Gishu. By forecasting average weekly dry maize prices, the models aim to provide short-horizon market intelligence that can help farmers decide when to sell after storing produce in certified warehouses. Reliable two-week-ahead forecasts strengthen agriBORA’s storage–credit–market workflow by enabling better timing decisions for delayed selling and improving expected returns.
 
-## Objectives
+## OBJECTIVES
 
 1. **Build a clean weekly panel** (county × week-start date) from the challenge data, robust to duplicate rows and irregular reporting.
 2. **Improve signal** by augmenting AgriBORA prices with external market indicators from **KAMIS** (county + national summaries).
@@ -58,7 +58,7 @@ flowchart TD
 
 ## DATA REQUIREMENTS
 
-### AgriBORA inputs
+### AgriBora inputs
 The notebook expects at minimum:
 - `Date` (parseable date)
 - `County`
