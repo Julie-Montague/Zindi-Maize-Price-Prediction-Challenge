@@ -35,7 +35,8 @@ Google Colab (Free version) : The google drive is mounted at the start of each n
 ## HOW TO RUN THE CODE
 1. Maintain the structure above to run the code efficiently
 2. Run 'pip install -r requirements.txt' (since we are using colab, each notebook has this code at the top before any imports).
-3. To run the model from scratch, use Modelling_Final.ipynb
+3. To run the model from scratch, use Modelling_Final.ipynb.
+4. To use the presaved models, run Submission_Final.ipynb.
     - ** For reproducibility, the artefacts from (3) are saved and we use the pre-saved models to generate the final submission file.
 
 ## NOTEBOOK RUNTIME
