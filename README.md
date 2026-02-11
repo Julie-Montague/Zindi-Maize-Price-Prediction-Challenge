@@ -27,14 +27,13 @@ flowchart TD
     %% Workflow for training & submission
 
     A((Start)) --> B[Make sure to save the files as shown in the repo structure section]
-    B --> C[pip install -r requirements.txt]
-    C --> D{Rerun full pipeline}
-    D -- Yes --> E[Run Modelling_Final.ipynb.The best models will be saved in terms of the lowest RMSE AND MAE.if a new model generates a better performance than the previously chosen best model, change the model path manually in the Submission_Final notebook to reference the new models]
-    D -- No  --> F[Run Submission_Final.ipynb : Use pre-saved best models to generate final submission file]
+    B --> C{Rerun full pipeline}
+    C -- Yes --> D[Run Modelling_Final.ipynb.The best models will be saved in terms of the lowest RMSE AND MAE.if a new model generates a better performance than the previously chosen best model, change the model path manually in the Submission_Final notebook to reference the new models]
+    C -- No  --> E[Run Submission_Final.ipynb : Use pre-saved best models to generate final submission file]
 
     %% Final submission
-    E --> F
-    F --> G((Done))
+    D --> E
+    E --> F((Done))
 ```
 
 
