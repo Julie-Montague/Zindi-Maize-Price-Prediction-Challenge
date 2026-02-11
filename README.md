@@ -1,6 +1,6 @@
 # Zindi-Maize-Price-Prediction-Challenge
 ## OVERVIEW
-Using historical prices of dry maize in Kenya, this project develops a machine learning solution to predict average weekly prices of maize in the counties of Kiambu, Kirinyaga, Mombasa, Nairobi and Uasin-Gishu. By forecasting average weekly dry maize prices, the model provides short-horizon market intelligence that can help farmers decide when to sell after storing produce in certified warehouses. Reliable two-week-ahead forecasts strengthen agriBORA’s storage–credit–market workflow by enabling better timing decisions for delayed selling and improving expected returns.
+Using historical prices of dry maize in Kenya, this project develops a machine learning solution to predict average weekly prices of maize in the counties of Kiambu, Kirinyaga, Mombasa, Nairobi and Uasin-Gishu. By forecasting average weekly dry maize prices, the models aim to provide short-horizon market intelligence that can help farmers decide when to sell after storing produce in certified warehouses. Reliable two-week-ahead forecasts strengthen agriBORA’s storage–credit–market workflow by enabling better timing decisions for delayed selling and improving expected returns.
 
 ## Objectives
 
@@ -30,16 +30,16 @@ Using historical prices of dry maize in Kenya, this project develops a machine l
 The notebook creates a run-specific experiment code (`exp_code`) and uses it to build `OUTPUT_DIR`.
 
 ## CODING ENVIRONMENT
-Google Colab (Free version) : The google drive is mounted at the start of each notebook. The main directory path is : "/content/drive/MyDrive/Zindi_Maize_Prediction_Challenge/requirements.txt"
+Google Colab (Free version) : The google drive is mounted at the start of each notebook. The main directory path is : "/content/drive/MyDrive/Zindi_Maize_Prediction_Challenge/"
 
 ## HOW TO RUN THE CODE
 1. Maintain the structure above to run the code efficiently
 2. Run 'pip install -r requirements.txt' (since we are using colab, each notebook has this code at the top before any imports).
 3. To run the model from scratch, use Modelling_Final.ipynb
-** For reproducibility, the artefacts from (3) are saved and we use the pre-saved models to generate the final submission file.
+    - ** For reproducibility, the artefacts from (3) are saved and we use the pre-saved models to generate the final submission file.
 
 ## NOTEBOOK RUNTIME
-All the notebook files takes less that 5 minutes whne run on the colab environment
+All the notebook files takes less that 5 minutes when run on the colab environment
 
 ## ARCHITECTURAL DIAGRAM
 ```mermaid
@@ -56,7 +56,7 @@ flowchart TD
     E --> F((Done))
 ```
 
-## Data requirements
+## DATA REQUIREMENTS
 
 ### AgriBORA inputs
 The notebook expects at minimum:
@@ -77,9 +77,9 @@ The cleaned KAMIS file is expected to contain (case-insensitive; notebook lowerc
 - `retail`, `wholesale`
 - `supplyvolume`
 
-## Configuration knobs (top of notebook)
+## Configuration knobs
 
-Key settings you can edit:
+Key settings:
 
 - **Paths**
   - `INPUT_DIR`, `AGRIBORA_FULL_PATH`, `AGRIBORA_RECENT_PATH`, `KAMIS_PATH`
@@ -100,7 +100,7 @@ Key settings you can edit:
 - **KAMIS (external market):**  
   - `data/kamis_maize_prices.csv` (baseline kamis data)  
   - *(optional)* live download → `data/kamis_maize_prices_downloaded.csv`
-  - 
+    
 ### 2) Filter + standardize
 - Filter AgriBORA rows to:
   - `Commodity_Classification == "Dry_White_Maize"`
@@ -109,8 +109,7 @@ Key settings you can edit:
 - Lowercase columns and normalize county name keys.
 
 ### 3) Weekly alignment (no leakage)
-- Convert all dates to **week-start Mondays** by subtracting the weekday offset.  
-  This ensures a consistent weekly timeline for both modelling and forecast dates.
+- Convert all dates to **week-start Mondays** by subtracting the weekday offset. This ensures a consistent weekly timeline for both modelling and forecast dates.
   
 ### 4) KAMIS preprocessing + aggregation
 - Combine `kamis_maize_prices.csv` with the optional freshly downloaded KAMIS extract (when available), then filter to:
@@ -120,28 +119,27 @@ Key settings you can edit:
   - **County-level:** median wholesale/retail, sum supply volume
   - **National-level:** median wholesale/retail, sum supply volume
 - Create **lag-1 features** (shift by one week) to prevent look-ahead bias.
-- 
+  
 ### 5) Feature merge + fallback fill
 - Merge lagged KAMIS features onto the AgriBORA weekly panel.
 - If a **county KAMIS lag** is missing for a week, fall back to the **national lag** for that same week.
 - Remaining missing KAMIS features (e.g., early history) are filled with `0.0` as a safe baseline.
 
-
 ## MODELLING APPROACH
 ### TARGET DEFINITION
-Instead of predicting price directly, we **price change (delta)**:
+Instead of predicting price directly, we predict the **price change (delta)**:
 - `delta_h1 = price(t+1) - price(t)`
 - `delta_h2 = price(t+2) - price(t)`
 We forecast **price changes** (deltas) instead of raw prices to make the learning problem more stable:
 - Prices can have level shifts across counties and time.
 - Predicting changes focuses the model on **short-horizon dynamics**.
 
-The final price forecast is reconstructed by adding the predicted change to the last known price at the anchor.
+The final price forecast is then reconstructed by adding the predicted change to the last known price at the anchor.
 - `price_hat(t+h) = price(t) + delta_hat_h`
 
 This helps stabilize learning across counties with different price levels and keeps the model focused on the short-horizon dynamics.
 
-### Feature set (default)
+### FEATURE SET
 The training set is built from a compact, high-signal feature list:
 - **Autoregressive / gap-aware from AgriBORA:** `prev_price`, `prev2_price`, `gap1_weeks`, `gap2_weeks`, `slope1`
 - **Seasonality:** `iso_week`, `wk_sin`, `wk_cos`, `is_year_end`
@@ -150,20 +148,20 @@ The training set is built from a compact, high-signal feature list:
   - county (with national fallback): `k_wh_lag1`, `k_rt_lag1`, `k_supply_lag1`
 - **Categorical:** `county`
 
-| Feature | Type | Source | Definition (how it’s computed) | Why it helps / notes |
+| Feature | Type | Source | Definition (how it’s computed) | Why it helps |
 |---|---|---|---|---|
 | `county` | categorical | AgriBORA | County identifier (Kiambu, Kirinyaga, Mombasa, Nairobi, Uasin-Gishu) | Captures structural price differences across locations |
 | `wholesale` | numeric | AgriBORA | Current week’s observed wholesale price at time **t** | Baseline level used when reconstructing price from predicted delta |
-| `prev_price` | numeric | AgriBORA | Previous observed wholesale price for that county: \(P_{t-1}\) (via `groupby(county).shift(1)`) | Autoregressive memory |
-| `prev2_price` | numeric | AgriBORA | Second previous observed wholesale price: \(P_{t-2}\) (via `shift(2)`) | Longer memory / trend |
-| `gap1_weeks` | numeric | AgriBORA | Weeks since the last observation: \((date - prev_date)/7\) | Handles irregular reporting / missing weeks |
-| `gap2_weeks` | numeric | AgriBORA | Weeks since the 2nd last observation: \((date - prev2_date)/7\) | Longer-gap context |
-| `slope1` | numeric | AgriBORA | Normalized weekly change: \((wholesale - prev_price)/gap1_weeks\) | Makes changes comparable even with missing weeks |
+| `prev_price` | numeric | AgriBORA | Previous observed wholesale price for that county | Autoregressive memory |
+| `prev2_price` | numeric | AgriBORA | Second previous observed wholesale price | Longer memory / trend |
+| `gap1_weeks` | numeric | AgriBORA | Weeks since the last observation | Handles irregular reporting / missing weeks |
+| `gap2_weeks` | numeric | AgriBORA | Weeks since the 2nd last observation | Longer-gap context |
+| `slope1` | numeric | AgriBORA | Normalized weekly change | Makes changes comparable even with missing weeks |
 | `iso_week` | numeric | Calendar | ISO week-of-year for the week-start date | Captures seasonal patterns |
-| `wk_sin` | numeric | Calendar | Cyclical encoding: \(\sin(2\pi \cdot iso\_week / 52)\) | Treats week 52 and week 1 as “close” |
-| `wk_cos` | numeric | Calendar | Cyclical encoding: \(\cos(2\pi \cdot iso\_week / 52)\) | Companion to `wk_sin` for seasonality |
+| `wk_sin` | numeric | Calendar | Cyclical encoding | Treats week 52 and week 1 as “close” |
+| `wk_cos` | numeric | Calendar | Cyclical encoding | Companion to `wk_sin` for seasonality |
 | `is_year_end` | numeric (0/1) | Calendar | 1 if `iso_week >= 48`, else 0 | Flags year-end effects |
-| `k_nat_wh_lag1` | numeric | KAMIS (national) | Previous week’s **national** median wholesale price (lag-1) | External market signal, lagged to avoid leakage |
+| `k_nat_wh_lag1` | numeric | KAMIS (national) | Previous week’s **national** median wholesale price (lag-1) | External market signal |
 | `k_nat_rt_lag1` | numeric | KAMIS (national) | Previous week’s **national** median retail price (lag-1) | External market signal |
 | `k_nat_supply_lag1` | numeric | KAMIS (national) | Previous week’s **national** total supply volume (weekly sum, lag-1) | Supply pressure proxy |
 | `k_wh_lag1` | numeric | KAMIS (county) | Previous week’s **county** median wholesale price (lag-1); if missing → `k_nat_wh_lag1` | County signal with national fallback |
@@ -221,15 +219,25 @@ The notebook includes commented code to create a submission DataFrame like:
 - `Target_RMSE`: predicted price
 - `Target_MAE`: predicted price
 
-## Lifecycle management (how to keep it running)
+## Model Perfomrance on Test Data
+| Scorboard | RMSE | MAE |
+|---|---:|---:|
+| Public | 4.150821 | 3.50060963 |
+| Private | 1.247100007 | 0.794047626 |
+
+## Lifecycle management
+
+### Reproducibility
+
+- Random seed is set via `RANDOM_SEED = 42`
 
 ### Updating data
 - Drop new/updated AgriBORA extracts into `data/` (same schema), then rerun the notebook.
-- If you want fresher KAMIS market signals, rerun the optional KAMIS download cell to regenerate `kamis_maize_prices_downloaded.csv`.
+- To fresher KAMIS market signals, rerun the optional KAMIS download cell to regenerate `kamis_maize_prices_downloaded.csv`.
 
 ### Re-training and re-selecting models
 - Re-run `backtest_compare(...)` for H=1 and H=2.
-- If a different model becomes best, update your `best_models` mapping (or the model file path used by your submission notebook, if you keep models saved).
+- If a different model becomes best, update your `best_models` mapping (and the model file path used by your submission notebook).
 
 ### Forecast schedule
 - Update these top-of-notebook knobs when the competition horizon shifts:
@@ -244,20 +252,10 @@ The notebook includes commented code to create a submission DataFrame like:
 
 
 ## Optional: NASA POWER weather features
+NASA POWER is a global meteorological dataset produced by NASA that provides daily, gridded weather variables such as temperature (min/max/mean), precipitation, solar radiation, humidity, wind speed, and related agro-climate indicators.
+In this project, NASA POWER features were explored as optional exogenous signals by mapping each county to a representative location (e.g., centroid), extracting daily weather time series, and aggregating them to the same weekly (Monday-start) frequency as the price panel, with lagged versions to avoid look-ahead bias.
+Although weather should theoretically affect maize supply conditions and market expectations, we ultimately excluded NASA POWER features in the final submission models because, in our backtests, adding them consistently reduced performance (higher RMSE/MAE).
+This likely reflects a combination of (i) spatial mismatch between coarse grid weather and true production zones, (ii) timing mismatch between weekly price movements and slower agronomic response lags, and (iii) limited training history where additional noisy features increase variance.
+Note on evaluation: We did not run an exhaustive feature subset search for NASA POWER (e.g., ablations, L1 selection, permutation selection). Instead, we added the full set of weekly aggregated POWER variables at once. The resulting degradation in RMSE/MAE therefore reflects this baseline integration and should be interpreted as evidence that “POWER-as-added” did not improve generalization in our backtests, not as a definitive statement that weather signals are uninformative.
 
-NASA POWER extraction utilities are present but commented out:
-- Fetch daily point data per county centroid
-- Aggregate to weekly (sum/mean/min/max depending on variable)
-- Merge on `(county, week_start_date)`
-- Optionally create lagged versions of POWER columns
 
-To enable this, uncomment:
-- the centroid table
-- the NASA POWER fetch/aggregate functions
-- the merge into `ag_feat`
-
-## Reproducibility
-
-- Random seed is set via `RANDOM_SEED = 42`.
-- Most sklearn models use `random_state=42`.
-- CatBoost uses `random_seed=42`.
