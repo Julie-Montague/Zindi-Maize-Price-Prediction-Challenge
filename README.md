@@ -1,4 +1,36 @@
 # AgriBora-Maize-Price-Prediction-Challenge
+Competition link : https://zindi.africa/competitions/agribora-commodity-price-forecasting-challenge
+
+## Project Overview
+This project develops machine learning models to predict maize prices using time-series data.
+
+Built as part of a Zindi data science competition, the project focuses on:
+- Time-series feature engineering
+- Model comparison and evaluation
+- End-to-end data processing pipeline
+
+## Key Contributions
+- Implemented full pipeline: preprocessing → feature engineering → modeling → evaluation
+- Engineered time-series features (lags, rolling statistics, trends)
+- Compared multiple models (LightGBM, XGBoost)
+- Evaluated performance using RMSE and MAE
+
+## Tech Stack
+- Python (pandas, numpy, sklearn)
+- LightGBM, XGBoost
+- Time-series feature engineering
+- Matplotlib / Seaborn
+
+## Results
+- Built predictive models for maize price forecasting
+- Demonstrated impact of feature engineering on model performance
+- Evaluated models using standard regression metrics (RMSE, MAE)
+
+## Reproducibility
+All steps from data preprocessing to model training are included in this repository and can be reproduced.
+
+---
+  
 ## OVERVIEW
 Using historical prices of dry maize in Kenya, this project develops a machine learning solution to predict average weekly prices of maize in the counties of Kiambu, Kirinyaga, Mombasa, Nairobi and Uasin-Gishu. By forecasting average weekly dry maize prices, the models aim to provide short-horizon market intelligence that can help farmers decide when to sell after storing produce in certified warehouses. Reliable two-week-ahead forecasts strengthen agriBORA’s storage–credit–market workflow by enabling better timing decisions for delayed selling and improving expected returns.
 
