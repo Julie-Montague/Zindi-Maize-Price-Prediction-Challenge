@@ -261,7 +261,7 @@ The notebook includes commented code to create a submission DataFrame like:
 - `Target_MAE`: predicted price
 
 ## Model Perfomrance on Test Data
-| Scorboard | RMSE | MAE |
+| Scoreboard | RMSE | MAE |
 |---|---:|---:|
 | Public | 4.150821 | 3.50060963 |
 | Private | 1.247100007 | 0.794047626 |
