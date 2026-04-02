@@ -17,7 +17,7 @@ Built as part of a Zindi data science competition, the project focuses on:
 
 ## Tech Stack
 - Python (pandas, numpy, sklearn)
-- LightGBM, XGBoost
+- ML Models : CatBoostRegressor, RidgeRegressor, MLPRegressor, HistGradientBoostingRegressor
 - Time-series feature engineering
 - Matplotlib / Seaborn
 
