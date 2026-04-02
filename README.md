@@ -76,7 +76,7 @@ All the notebook files takes less that 5 minutes when run on the colab environme
 
 ## ARCHITECTURAL DIAGRAM
 ```mermaid
-flowchart TD
+flowchart LR
     %% Workflow for training & submission
 
     A((Start)) --> B[Make sure to save the files as shown in the repository layout section]
